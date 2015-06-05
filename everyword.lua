@@ -36,6 +36,12 @@ local function parse_args()
     parser:command "tweet"
         :description "Tweets the next word."
 
+    local cmd_list = parser:command "list"
+        :description "Outputs a list of the tweeted words."
+    cmd_list:argument "word"
+        :description "Word to search."
+        :args "?"
+
     return parser:parse()
 end
 
@@ -246,6 +252,17 @@ local function cmd_tweet(db)
     end
 end
 
+local function cmd_list(db, search)
+    local cond = search and " AND word LIKE ?" or ""
+    local st = db.prepare["SELECT id, word, tweet_id FROM words WHERE tweet_id NOT NULL" .. cond]
+    if search then
+        st:bind_values(search)
+    end
+    for id, word, tweet_id in st:urows() do
+        print(("%d: %s  -- tweet %s"):format(id, word, tweet_id))
+    end
+end
+
 ---
 
 local args = parse_args()
@@ -275,4 +292,6 @@ elseif args.login then
     cmd_login(db, args.consumer_key, args.consumer_secret)
 elseif args.logout then
     cmd_logout(db)
+elseif args.list then
+    cmd_list(db, args.word)
 end
