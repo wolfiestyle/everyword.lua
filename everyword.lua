@@ -246,9 +246,19 @@ local function cmd_tweet(db)
     if word then
         local message = tweet_fmt:format(word)
         --print("-- tweeting: " .. message)
-        local tweet = assert(client:tweet{ status = message })
+        local tweet, err = client:tweet{ status = message }
+        local tweet_id
+        if tweet == nil then
+            if err._type == "error" and err:code() == 187 then -- status duplicate
+                tweet_id = 0 -- we don't know the id, but it's there
+            else
+                error(tostring(err))
+            end
+        else
+            tweet_id = tweet.id_str
+        end
         db:set_config("last_word_id", tostring(last_id))
-        db:update_word(last_id, tweet.id_str)
+        db:update_word(last_id, tweet_id)
     end
 end
 
